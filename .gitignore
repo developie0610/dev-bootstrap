@@ -1,0 +1,6 @@
+# Local state and logs
+state/
+*.log
+
+# macOS
+.DS_Store

@@ -1,0 +1,14 @@
+font-family = "MesloLGS Nerd Font"
+font-size = 13
+
+theme = "tokyonight"
+
+shell = "/bin/zsh"
+
+cursor-style = "block"
+cursor-blink = true
+
+window-padding-x = 10
+window-padding-y = 10
+
+background-opacity = 0.95
