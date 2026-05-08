@@ -20,8 +20,24 @@ Options:
   -h, --help          Show this help text
   -m, --mode MODE     Run mode: all | select | step
   -t, --task NAME     Run a single module by name
+  -f, --file-mode     File handling when config exists:
+                      interactive (default) - prompt for each file
+                      backup - backup existing, replace with new
+                      merge - append new content to existing file
+                      skip - keep existing files unchanged
+                      force - replace without backup (dangerous)
   -r, --reset         Remove module state and rerun everything
   -s, --status        Show completed modules
+  -R, --retry NAME    Retry a specific module (remove from state and run)
+
+Environment Variables:
+  FILE_MODE           Same as --file-mode (overridden by CLI flag)
+
+Examples:
+  ./setup.sh --mode all
+  ./setup.sh --mode all --file-mode merge
+  FILE_MODE=skip ./setup.sh --task terminal
+  ./setup.sh --task terminal --file-mode backup
 HELP
 }
 
@@ -91,6 +107,7 @@ main() {
 
   local mode=""
   local requested_module=""
+  local file_mode=""
 
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -113,6 +130,30 @@ main() {
         show_status
         exit 0
         ;;
+      -R|--retry)
+        shift
+        local retry_module="${1:-}"
+        if [ -z "$retry_module" ]; then
+          echo "❌ Module name required for --retry"
+          exit 1
+        fi
+        if ! contains_module "$retry_module"; then
+          echo "❌ Unknown module: $retry_module"
+          exit 1
+        fi
+        # Remove from state file
+        if [ -f "$STATE_FILE" ]; then
+          grep -v "^${retry_module}$" "$STATE_FILE" > "${STATE_FILE}.tmp" || true
+          mv "${STATE_FILE}.tmp" "$STATE_FILE"
+          echo "🔄 Removed $retry_module from state - will retry"
+        fi
+        run_module "$retry_module"
+        exit $?
+        ;;
+      -f|--file-mode)
+        shift
+        file_mode="${1:-}"
+        ;;
       *)
         echo "Unknown option: $1"
         print_help
@@ -121,6 +162,12 @@ main() {
     esac
     shift
   done
+
+  # Set file mode if provided via CLI (overrides env var)
+  if [ -n "$file_mode" ]; then
+    set_file_mode "$file_mode" || exit 1
+    echo "📁 File mode: $FILE_MODE"
+  fi
 
   if [ -n "$requested_module" ]; then
     run_module "$requested_module"

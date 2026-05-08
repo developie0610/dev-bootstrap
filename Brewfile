@@ -2,6 +2,7 @@ brew "git"
 brew "fzf"
 brew "bat"
 brew "ripgrep"
+brew "forgit"
 
 cask "iterm2"
 cask "visual-studio-code"
